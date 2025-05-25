@@ -3,8 +3,10 @@ package com.appsdeveloperblog.ws.products.service;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties.Producer;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
@@ -65,9 +67,14 @@ public class ProductServiceImpl implements ProductService {
         productCreatedEvent.setPrice(productRestModel.getPrice());
         productCreatedEvent.setQuantity(productRestModel.getQuantity());
 
+        ProducerRecord<String, ProductCreatedEvent> producerRecord = new ProducerRecord<String,ProductCreatedEvent>("product-created-events-topic", productID, productCreatedEvent);        
+        producerRecord.headers().add("messageId", UUID.randomUUID().toString().getBytes());
         // Pubblica l'evento di creazione del prodotto su Kafka in modo sincrono
-       SendResult<String, ProductCreatedEvent> result = kafkaTemplate.send("product-created-events-topic", productID, productCreatedEvent)
-           .get();
+        SendResult<String, ProductCreatedEvent> result = kafkaTemplate.send(producerRecord)
+            .get();
+        
+
+
         
         log.info("Messaggio inviato con successo: " + result.getProducerRecord().value());
         log.info("Messaggio inviato con successo: " + result.getProducerRecord().key());
